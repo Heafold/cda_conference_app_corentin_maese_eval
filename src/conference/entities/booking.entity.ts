@@ -1,6 +1,7 @@
 import { Entity } from "../../core/entities/entity"
 
 type BookingProps = {
+    id: string
     userId: string
     conferenceId: string
 }

@@ -2,10 +2,10 @@ import { AwilixContainer } from 'awilix';
 import { NextFunction, Request, Response } from 'express';
 import { ChangeDates } from '../../../conference/usecases/change-dates';
 import { ChangeSeats } from '../../../conference/usecases/change-seats';
-import { OrganizeConference } from '../../../conference/usecases/organize-conference';
 import { User } from '../../../user/entities/user.entity';
 import { ChangeDatesInputs, ChangeSeatsInputs, CreateConferenceInputs } from "../dto/conference.dto";
 import { ValidatorRequest } from '../utils/validate-request';
+import { BookSeat } from '../../../conference/usecases/book-seat';
 
 
 export const organizeConference = (container: AwilixContainer) => {
@@ -77,6 +77,23 @@ export const changeDates = (container: AwilixContainer) => {
                 endDate: input.endDate
             })
             return res.jsonSuccess(result, 200)
+        } catch (error) {
+            next(error);
+        }
+    };
+}
+
+export const bookSeat = (container: AwilixContainer) => {
+    return async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { conferenceId } = req.body;
+
+            const result = await (container.resolve('bookSeat') as BookSeat).execute({
+                user: req.user as User,
+                conferenceId
+            });
+
+            return res.jsonSuccess(result, 201);
         } catch (error) {
             next(error);
         }

@@ -16,6 +16,7 @@ import { MongoUser } from "../../../user/adapters/mongo/mongo-user";
 import { MongoUserRepository } from "../../../user/adapters/mongo/mongo-user-repository";
 import { IUserRepository } from "../../../user/ports/user-repository.interface";
 import { BasicAuthenticator } from "../../../user/services/basic-authenticator";
+import { BookSeat } from '../../../conference/usecases/book-seat';
 
 
 const container = createContainer()
@@ -42,7 +43,7 @@ container.register({
         conferenceRepository, idGenerator, dateGenerator
     )),
     changeSeats: asValue(new ChangeSeats(
-        conferenceRepository
+        conferenceRepository, bookingRepository
     )),
     changeDates: asValue(new ChangeDates(
         conferenceRepository, 
@@ -50,6 +51,11 @@ container.register({
         bookingRepository, 
         mailer, 
         userRepository
+    )),
+    bookSeat: asValue(new BookSeat(
+        conferenceRepository,
+        bookingRepository,
+        idGenerator
     )),
     authenticator: asValue(new BasicAuthenticator(userRepository)),
 })
