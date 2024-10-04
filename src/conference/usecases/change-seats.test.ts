@@ -2,7 +2,8 @@ import { testUsers } from "../../user/tests/user-seeds"
 import { InMemoryConferenceRepository } from "../adapters/in-memory-conference-repository"
 import { testConference } from "../tests/conference-seeds"
 import { ChangeSeats } from "./change-seats"
-
+import { InMemoryBookingRepository } from "../adapters/in-memory-booking-repository"
+import { Booking } from "../entities/booking.entity"
 
 describe("Feature: Changing the number of seats", () => {
     async function expectSeatsUnchanged() {
@@ -11,12 +12,14 @@ describe("Feature: Changing the number of seats", () => {
     }
 
     let repository: InMemoryConferenceRepository
+    let bookingRepository: InMemoryBookingRepository
     let useCase: ChangeSeats
 
     beforeEach(async () => {
         repository = new InMemoryConferenceRepository()
+        bookingRepository = new InMemoryBookingRepository()
         await repository.create(testConference.conference1)
-        useCase = new ChangeSeats(repository)
+        useCase = new ChangeSeats(repository, bookingRepository)
     })
 
     describe('Scenario: Happy path', () => {
@@ -77,6 +80,49 @@ describe("Feature: Changing the number of seats", () => {
             })).rejects.toThrow('The conference must have a maximum of 1000 seats and minimum of 20 seats')
 
             await expectSeatsUnchanged()
+        })
+    })
+
+    describe('Scenario: Attempt to set seats below number of bookings', () => {
+        beforeEach(async () => {
+            for (let i = 0; i < 30; i++) {
+                await bookingRepository.create(new Booking({
+                    userId: `user-${i}`,
+                    conferenceId: testConference.conference1.props.id
+                }))
+            }
+        })
+
+        it('should fail when trying to set seats below bookings', async () => {
+            await expect(useCase.execute({
+                user: testUsers.johnDoe,
+                conferenceId: testConference.conference1.props.id,
+                seats: 25
+            })).rejects.toThrow('Cannot reduce seats below the number of existing bookings')
+
+            await expectSeatsUnchanged()
+        })
+
+        it('should succeed when setting seats equal to bookings', async () => {
+            await expect(useCase.execute({
+                user: testUsers.johnDoe,
+                conferenceId: testConference.conference1.props.id,
+                seats: 30
+            })).resolves.not.toThrow()
+
+            const updatedConference = await repository.findById(testConference.conference1.props.id)
+            expect(updatedConference?.props.seats).toEqual(30)
+        })
+
+        it('should succeed when increasing seats above bookings', async () => {
+            await expect(useCase.execute({
+                user: testUsers.johnDoe,
+                conferenceId: testConference.conference1.props.id,
+                seats: 60
+            })).resolves.not.toThrow()
+
+            const updatedConference = await repository.findById(testConference.conference1.props.id)
+            expect(updatedConference?.props.seats).toEqual(60)
         })
     })
 })

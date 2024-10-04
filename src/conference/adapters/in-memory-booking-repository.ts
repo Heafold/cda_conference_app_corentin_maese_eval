@@ -1,7 +1,6 @@
 import { Booking } from "../entities/booking.entity";
 import { IBookingRepository } from "../ports/booking-repository.interface";
 
-
 export class InMemoryBookingRepository implements IBookingRepository {
     public database: Booking[] = []
 
